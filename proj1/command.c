@@ -34,6 +34,7 @@ void listDir()
             fileName = entry->d_name;
             if (fileName[0] != '.')
             {
+                
                 if (count != 0)
                     write(STDOUT_FILENO, space, strlen(space));
                 write(STDOUT_FILENO, fileName, strlen(fileName));
@@ -43,6 +44,14 @@ void listDir()
                 {
                     write(STDOUT_FILENO, newLine, strlen(newLine));
                 }
+            }
+            else if (fileName[0] == '.' && fileName[1] == '.' && fileName[2] == '\0')
+            {
+                write(STDOUT_FILENO, fileName, strlen(fileName));
+            }
+            else if (fileName[0] == '.' && fileName[1] == '\0')
+            {
+                write(STDOUT_FILENO, fileName, strlen(fileName));
             }
         }
         closedir(wdir);

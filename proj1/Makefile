@@ -15,5 +15,11 @@ main.o: main.c
 
 clean:
 	rm -f *.o $(EXEC)
-	rm -r test
+	# rm -r test
 	rm valOut.txt
+
+test:
+	bash test_script.sh
+
+run:
+	./pseudo-shell

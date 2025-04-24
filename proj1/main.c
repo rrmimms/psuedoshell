@@ -12,19 +12,18 @@
 
 void fileMode(char *sourcePath, int argc)
 {
-
-    int comFile = open(sourcePath, O_RDONLY);
-    if (comFile < 0)
-    {
-        perror("Error opening file");
-        exit(EXIT_FAILURE);
-    }
-
-    FILE *inFile = fdopen(comFile, "r");
+    FILE *inFile = freopen(sourcePath, "r", stdin);
     if (inFile == NULL)
     {
-        perror("Error converting file descriptor to FILE*");
-        close(comFile);
+        perror("Error opening input file");
+        fclose(inFile);
+        exit(EXIT_FAILURE);
+    }
+    FILE *outFile = freopen("output.txt", "w", stdout);
+    if (outFile == NULL)
+    {
+        perror("Error creating or opening output file.");
+        fclose(outFile);
         exit(EXIT_FAILURE);
     }
 
@@ -38,6 +37,8 @@ void fileMode(char *sourcePath, int argc)
     }
     command_line largeCL;
     command_line smallCL;
+    printf(">>> ");
+    fflush(stdout);
 
     while (getline(&buff, &size, inFile) != -1)
     {
@@ -50,6 +51,8 @@ void fileMode(char *sourcePath, int argc)
 
             for (int j = 0; j < smallCL.num_token; j++)
             {
+                if (smallCL.command_list[j] == ">>> ")
+                    continue;
                 // fprintf(stdout, "%s\n" ,smallCL.command_list[j]);
                 char *com = smallCL.command_list[j];
 
@@ -116,6 +119,8 @@ void fileMode(char *sourcePath, int argc)
 
         free_command_line(&largeCL);
         memset(&largeCL, 0, 0);
+        printf(">>> ");
+        fflush(stdout);
     }
     free(buff);
     fclose(inFile);
@@ -135,9 +140,16 @@ void interactiveMode()
     }
     command_line largeCL;
     command_line smallCL;
+
+    printf(">>> ");
+    fflush(stdout);
+
     while (getline(&buff, &size, line))
     {
+
+
         largeCL = str_filler(buff, ";");
+
 
         for (int i = 0; largeCL.command_list[i] != NULL; i++)
         {
@@ -146,6 +158,8 @@ void interactiveMode()
 
             for (int j = 0; j < smallCL.num_token; j++)
             {
+                if (smallCL.command_list[j] == ">>> ")
+                    continue;
                 // fprintf(stdout, "%s\n" ,smallCL.command_list[j]);
                 char *com = smallCL.command_list[j];
 
@@ -216,7 +230,7 @@ void interactiveMode()
 
                 else if (strcmp(com, "cat") == 0)
                 {
-                    if(smallCL.command_list[j+1] == NULL)
+                    if (smallCL.command_list[j + 1] == NULL)
                     {
                         fprintf(stderr, "File argument was NULL\nUsage: cat <filepath>");
                         break;
@@ -245,6 +259,8 @@ void interactiveMode()
 
         free_command_line(&largeCL);
         memset(&largeCL, 0, 0);
+        printf(">>> ");
+        fflush(stdout);
     }
     free(buff);
     fclose(line);

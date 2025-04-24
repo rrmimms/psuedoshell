@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+*.txt
+*.docx
+test_script.sh
+
 # Object files
 *.o
 *.ko
