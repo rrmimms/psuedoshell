@@ -7,233 +7,272 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include "command.h"
 
 void listDir()
 {
-
-    long size = pathconf(".", _PC_PATH_MAX);
+    int flag = 0;
+    size_t size = 1000000;
     char *buff = (char *)malloc(size);
-    const char *wdName = getcwd(buff, size);
+    char *wdName = getcwd(NULL, 0);
     char *newLine = "\n";
     char *space = " ";
-    char *fileName;
-    if (wdName != NULL)
+    char *fileName = NULL;
+    do
     {
-        int count = 0;
-        DIR *wdir = opendir(wdName);
-        if (wdir == NULL)
+        if (wdName != NULL)
         {
-            free(buff);
-            perror("directory is NULL\n");
-            return;
-        }
-        struct dirent *entry;
-        while ((entry = readdir(wdir)) != NULL)
-        {
-            fileName = entry->d_name;
-            if (fileName[0] != '.')
+            int count = 0;
+            DIR *wdir = opendir(wdName);
+            if (wdir == NULL)
             {
-                
-                if (count != 0)
-                    write(STDOUT_FILENO, space, strlen(space));
-                write(STDOUT_FILENO, fileName, strlen(fileName));
-                write(STDOUT_FILENO, space, strlen(space));
-                count++;
-                if (count % 6 == 0)
+                perror("directory is NULL\n");
+                break;
+            }
+            struct dirent *entry;
+            while ((entry = readdir(wdir)) != NULL)
+            {
+                fileName = entry->d_name;
+                if (strcmp(fileName, "...") == 0)
+                    break;
+
+                if (fileName[0] != '.')
                 {
-                    write(STDOUT_FILENO, newLine, strlen(newLine));
+                    if (count != 0)
+                        write(STDOUT_FILENO, space, strlen(space));
+                    write(STDOUT_FILENO, fileName, strlen(fileName));
+                    count++;
+                }
+                else if (fileName[0] == '.' && fileName[1] == '.' && fileName[2] == '\0')
+                {
+                    write(STDOUT_FILENO, fileName, strlen(fileName));
+                    write(STDOUT_FILENO, space, strlen(space));
+                }
+                else if (fileName[0] == '.' && fileName[1] == '\0')
+                {
+                    write(STDOUT_FILENO, fileName, strlen(fileName));
+                    write(STDOUT_FILENO, space, strlen(space));
                 }
             }
-            else if (fileName[0] == '.' && fileName[1] == '.' && fileName[2] == '\0')
-            {
-                write(STDOUT_FILENO, fileName, strlen(fileName));
-            }
-            else if (fileName[0] == '.' && fileName[1] == '\0')
-            {
-                write(STDOUT_FILENO, fileName, strlen(fileName));
-            }
+            closedir(wdir);
         }
-        closedir(wdir);
-
-        write(STDOUT_FILENO, newLine, strlen(newLine));
-    } /*for the ls command*/
-    free(buff);
+    } while (flag);
+    write(STDOUT_FILENO, newLine, strlen(newLine));
+    if (buff)
+    {
+        free(buff);
+    }
+    if (wdName)
+    {
+        free(wdName);
+    }
+    return;
 }
 void showCurrentDir()
 {
 
-    long size = pathconf(".", _PC_PATH_MAX);
-    char *buff = (char *)malloc(size);
-    char *cwd = getcwd(buff, size);
-    strcat(cwd, "\n");
+    size_t size = 10000000;
+    char *buff = (char *)malloc(size * 2);
+    char *cwd = NULL;
+    char *newLine = "\n";
+    cwd = getcwd(NULL, 0);
     write(STDOUT_FILENO, cwd, strlen(cwd));
+    write(STDOUT_FILENO, newLine, strlen(newLine));
+    if (cwd)
+    {
+        free(cwd);
+    }
     free(buff);
 } /*for the pwd command*/
 
 void makeDir(char *dirName)
 {
 
-    long size = pathconf(".", _PC_PATH_MAX);
-    char *buff = (char *)malloc(size);
-    char *cwd = getcwd(buff, size);
-    strcat(cwd, "/");
-    strcat(cwd, dirName);
-    if (mkdir(cwd, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+    size_t size = 100000000;
+    char *buff = (char *)malloc((size * 2) + 50);
+    char *cwd = getcwd(NULL, 0);
+    do
     {
-        perror("mkdir failed");
-        free(buff);
-        return;
+        strcpy(buff, cwd);
+        strcat(buff, "/");
+        strcat(buff, dirName);
+        if (mkdir(buff, S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+        {
+            perror("mkdir failed");
+            break;
+        }
+
+    } while (0);
+    if (cwd)
+    {
+        free(cwd);
     }
-    free(buff);
+    if (buff)
+    {
+        free(buff);
+    }
 }
 
 void changeDir(char *dirName)
 {
 
-    long size = pathconf(".", _PC_PATH_MAX);
-    char *dir = (char *)malloc(size);
-    dir = getcwd(dir, size);
-    strcat(dir, "/");
-    strcat(dir, dirName);
-
-    int ret = chdir(dir);
+    int ret = chdir(dirName);
 
     if (ret == 0)
     {
-        free(dir);
+        // free(dir);
         return;
     }
     else
     {
         perror("chdir failed: \n");
-        free(dir);
+        // free(dir);
         return;
     }
-    free(dir);
+    // free(dir);
 }
 
 void copyFile(char *sourcePath, char *destinationPath)
 {
 
-    long len = 1024;
-    char *curDir = (char *)malloc(len);
-    if (curDir == NULL)
-    {
-        perror("malloc failed");
-        return;
-    }
-    if (getcwd(curDir, len) == NULL)
-    {
-        perror("getcwd failed");
-        free(curDir);
-        return;
-    }
-    if (curDir == NULL)
-    {
-        perror("malloc failed - cp\n");
-        return;
-    }
-    int inFile = open(sourcePath, O_RDONLY, S_IRWXU);
-    if (inFile < 0)
-    {
-        perror("Couldn't open file -cp\n");
-        free(curDir);
-        return;
-    }
+    char *curDir = getcwd(NULL, 0);
 
+    char *finalPath = (char *)malloc(100000);
+    strcpy(finalPath, destinationPath);
+    const size_t buffSize = 64 * 1024 * 1024;
+    struct stat dirSt;
     int outFile = 0;
-
-    if (strcmp(destinationPath, ".") == 0 || strcmp(destinationPath, "..") == 0)
-    {
-        if (strcmp(destinationPath, "..") == 0)
-        {
-            changeDir("..");
-        }
-
-        char *endPath = strrchr(sourcePath, '/');
-        char *fileName = NULL;
-        if (endPath == NULL)
-        {
-            fileName = sourcePath;
-        }
-        else
-        {
-            fileName = endPath;
-        }
-        if (fileName + 1 == "/0")
-        {
-            fileName++;
-        }
-        getcwd(curDir, sizeof(curDir));
-        strcat(curDir, fileName);
-        outFile = open(curDir, O_CREAT | O_WRONLY, S_IRWXU);
-    }
-    else
-    {
-        outFile = open(destinationPath, O_CREAT | O_WRONLY, S_IRWXU);
-    }
-    if (outFile < 0)
-    {
-        perror("Couldn't open file: ");
-        free(curDir);
-        return;
-    }
-
     struct stat fileStat;
-    if (fstat(inFile, &fileStat) < 0)
-    {
-        perror("fstat failed -cp\n");
-        close(inFile);
-        close(outFile);
-        free(curDir);
-        return;
-    }
-    int size = fileStat.st_size;
-    char *buff = (char *)malloc(size);
-    if (buff == NULL)
-    {
-        perror("malloc failed -cp\n");
-        close(inFile);
-        close(outFile);
-        free(curDir);
-        return;
-    }
+    char *buff = (char *)malloc(buffSize);
+    int inFile = -1;
+    ssize_t readSize = 0;
 
-    if (read(inFile, buff, size) < 0)
+    char *baseSourceBuff = strdup(sourcePath);
+    char *baseSourcePath = basename(baseSourceBuff);
+
+    do
     {
-        perror("error reading source file -cp\n");
-        close(inFile);
-        close(outFile);
-        free(curDir);
-        return;
-    }
+        if (curDir == NULL)
+        {
+            perror("getcwd was bad");
+            break;
+        }
+        inFile = open(sourcePath, O_RDONLY);
+        if (inFile < 0)
+        {
+            perror("Couldn't open input file");
+            break;
+        }
 
-    int ret = write(outFile, buff, size);
+        if (baseSourceBuff == NULL)
+        {
+            perror("strdup failed");
+            break;
+        }
 
-    if (ret != -1)
+        // if (strcmp(destinationPath, ".") == 0 || strcmp(destinationPath, "..") == 0)
+        // {
+        //     isDir = 1;
+        //     if (strcmp(destinationPath, ".") == 0)
+        //     {
+        //         strcpy(targetDir, curDir);
+        //         if (targetDir == NULL)
+        //         {
+        //             perror("malloc failed");
+        //             break;
+        //         }
+        //     }
+        //     else if (strcmp(destinationPath, "..") == 0)
+        //     {
+        //         char *temp = strdup(curDir);
+        //         targetDir = dirname(temp);
+        //         if (targetDir == NULL)
+        //         {
+        //             perror("malloc failed");
+        //             break;
+        //         }
+        //     }
+        // }
+
+        if (stat(destinationPath, &dirSt) == 0 && S_ISDIR(dirSt.st_mode))
+        {
+            printf("final path: %s\n", finalPath);
+            if (finalPath[strlen(finalPath) - 1] != '/')
+            {
+                strcat(finalPath, "/");
+                printf("final path: %s\n", finalPath);
+            }
+            strcat(finalPath, baseSourcePath);
+            printf("final path: %s\n", finalPath);
+        }
+        printf("final path: %s\n", finalPath);
+
+        outFile = open(finalPath, O_CREAT | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH);
+
+        if (outFile < 0)
+        {
+            perror("Couldn't open file: ");
+            break;
+        }
+
+        if (fstat(inFile, &fileStat) < 0)
+        {
+            perror("fstat failed -cp\n");
+            break;
+        }
+
+        if (buff == NULL)
+        {
+            perror("malloc failed -cp\n");
+            break;
+        }
+        for (size_t fileSize = fileStat.st_size; fileSize > 0; fileSize -= readSize)
+        {
+            if ((readSize = read(inFile, buff, buffSize)) < 0)
+            {
+                perror("error reading source file -cp\n");
+                break;
+            }
+            if (readSize == 0)
+            {
+                break;
+            }
+            if (write(outFile, buff, readSize) < 0)
+            {
+
+                perror("write failed: ");
+                break;
+            }
+        }
+        break;
+    } while (0);
+    if (buff)
     {
         free(buff);
-        close(inFile);
-        close(outFile);
-        free(curDir);
-        return;
     }
-    else
+    if (inFile >= 0)
     {
-        perror("copy failed: ");
         close(inFile);
+    }
+    if (outFile >= 0)
+    {
         close(outFile);
-        free(buff);
+    }
+    if (curDir)
+    {
         free(curDir);
-
-        return;
+    }
+    if (finalPath)
+    {
+        free(finalPath);
+    }
+    if (baseSourceBuff)
+    {
+        free(baseSourceBuff);
     }
 
-    free(buff);
-    close(inFile);
-    close(outFile);
-    free(curDir);
+    return;
 }
 
 void moveFile(char *sourcePath, char *destinationPath)

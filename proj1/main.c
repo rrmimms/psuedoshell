@@ -37,8 +37,6 @@ void fileMode(char *sourcePath, int argc)
     }
     command_line largeCL;
     command_line smallCL;
-    printf(">>> ");
-    fflush(stdout);
 
     while (getline(&buff, &size, inFile) != -1)
     {
@@ -51,9 +49,6 @@ void fileMode(char *sourcePath, int argc)
 
             for (int j = 0; j < smallCL.num_token; j++)
             {
-                if (smallCL.command_list[j] == ">>> ")
-                    continue;
-                // fprintf(stdout, "%s\n" ,smallCL.command_list[j]);
                 char *com = smallCL.command_list[j];
 
                 if (strcmp(com, "cp") == 0)
@@ -64,9 +59,9 @@ void fileMode(char *sourcePath, int argc)
                 }
 
                 else if (strcmp(com, "mkdir") == 0)
-                {
+                {           
 
-                    fprintf(stdout, "%s\n", smallCL.command_list[j + 1]);
+                    //fprintf(stdout, "%s\n", smallCL.command_list[j + 1]);
                     makeDir(smallCL.command_list[j + 1]);
                     j++;
                 }
@@ -106,7 +101,7 @@ void fileMode(char *sourcePath, int argc)
 
                 else
                 {
-                    fprintf(stderr, "Unrecognized command\n");
+                    fprintf(stdout, "Error: Unrecognized command\n");
                 }
                 if (j > smallCL.num_token)
                     break;
@@ -119,19 +114,19 @@ void fileMode(char *sourcePath, int argc)
 
         free_command_line(&largeCL);
         memset(&largeCL, 0, 0);
-        printf(">>> ");
-        fflush(stdout);
     }
+    fprintf(stdout, "\n");
     free(buff);
     fclose(inFile);
 }
 
-void interactiveMode()
+void interactiveMode(int argc)
 {
     FILE *line = fdopen(STDIN_FILENO, "r");
 
-    size_t size = 128;
-    char *buff = (char *)malloc(size);
+    const size_t buffSize = 1024;
+    char *buff = (char *)malloc(buffSize);
+
     if (buff == NULL)
     {
         perror("malloc failed");
@@ -143,99 +138,172 @@ void interactiveMode()
 
     printf(">>> ");
     fflush(stdout);
-
-    while (getline(&buff, &size, line))
+    int flag = 0;
+    
+    for (size_t size = buffSize; getline(&buff, &size, line); size = buffSize)
     {
-
-
         largeCL = str_filler(buff, ";");
-
 
         for (int i = 0; largeCL.command_list[i] != NULL; i++)
         {
-
+            if (flag == 1)
+            {
+                flag = 0;
+            }
             smallCL = str_filler(largeCL.command_list[i], " ");
 
             for (int j = 0; j < smallCL.num_token; j++)
             {
-                if (smallCL.command_list[j] == ">>> ")
-                    continue;
-                // fprintf(stdout, "%s\n" ,smallCL.command_list[j]);
+                if (flag == 1)
+                {
+                    j = smallCL.num_token;
+                    break;
+                }
+                // if (smallCL.command_list[j] == ">>> ")
+                //     continue;
+
                 char *com = smallCL.command_list[j];
+                if (com == NULL || strcmp(com, "") == 0 || strcmp(com, "\n") == 0)
+                {
+                    continue;
+                }
 
                 if (strcmp(com, "cp") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL || smallCL.command_list[j + 2] == NULL)
                     {
-                        fprintf(stderr, "One of the file arguments was NULL\nUsage: cp <filepath> <filepath>");
+                        fprintf(stdout, "Error: One of the file arguments was NULL\nUsage: cp <filepath> <filepath>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 3] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     copyFile(smallCL.command_list[j + 1], smallCL.command_list[j + 2]);
-                    j += 2;
+                    break;
                 }
 
                 else if (strcmp(com, "mkdir") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL)
                     {
-                        fprintf(stderr, "Directory argument was NULL\nUsage: mkdir <directory name>");
+                        fprintf(stdout, "Error: Directory argument was NULL\nUsage: mkdir <directory name>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 2] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     makeDir(smallCL.command_list[j + 1]);
                     j++;
                 }
 
-                else if (strcmp(com, "ls") == 0 || strcmp(com, " ls") == 0 || strcmp(com, "ls ") == 0 || strcmp(com, " ls ") == 0)
+                else if (strcmp(com, "ls") == 0)
                 {
-                    listDir();
+                    if (smallCL.command_list[j + 1] == NULL)
+                    {
+                        listDir();
+                        break;
+                    }
+                    else
+                    {
+                        fprintf(stdout, "Error: ls doesn't take arguments\n");
+                        flag = 1;
+                        break;
+                    }
                 }
 
                 else if (strcmp(com, "pwd") == 0)
                 {
-                    showCurrentDir();
+                    if (smallCL.command_list[j + 1] == NULL)
+                    {
+                        showCurrentDir();
+                        break;
+                    }
+                    else
+                    {
+                        fprintf(stdout, "Error: pwd\npwd doesn't take arguments\n");
+                        flag = 1;
+                        break;
+                    }
                 }
 
                 else if (strcmp(com, "cd") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL)
                     {
-                        fprintf(stderr, "Directory argument was NULL\nUsage: cd <filepath>");
+                        fprintf(stdout, "Error: Directory argument was NULL\nUsage: cd <filepath>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 2] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     changeDir(smallCL.command_list[j + 1]);
-                    j++;
+                    break;
                 }
 
                 else if (strcmp(com, "mv") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL || smallCL.command_list[j + 2] == NULL)
                     {
-                        fprintf(stderr, "One of the arguments was NULL\nUsage: mv <filepath> <filepath>");
+                        fprintf(stdout, "Error: One of the arguments was NULL\nUsage: mv <filepath> <filepath>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 3] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     moveFile(smallCL.command_list[j + 1], smallCL.command_list[j + 2]);
-                    j += 2;
+                    break;
                 }
 
                 else if (strcmp(com, "rm") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL)
                     {
-                        fprintf(stderr, "File argument was NULL\nUsage: rm <filepath>");
+                        fprintf(stdout, "Error: File argument was NULL\nUsage: rm <filepath>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 2] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     deleteFile(smallCL.command_list[j + 1]);
-                    j++;
+                    break;
                 }
 
                 else if (strcmp(com, "cat") == 0)
                 {
                     if (smallCL.command_list[j + 1] == NULL)
                     {
-                        fprintf(stderr, "File argument was NULL\nUsage: cat <filepath>");
+                        fprintf(stdout, "Error: File argument was NULL\nUsage: cat <filepath>");
+                        flag = 1;
+                        break;
+                    }
+                    if (smallCL.command_list[j + 2] != NULL)
+                    {
+                        fprintf(stdout, "Error: too many arguemnts!");
+                        flag = 1;
                         break;
                     }
                     displayFile(smallCL.command_list[j + 1]);
+                    break;
                 }
 
                 else if (strcmp(com, "exit") == 0)
@@ -243,22 +311,21 @@ void interactiveMode()
                     exit(EXIT_SUCCESS);
                 }
 
-                else if (strcmp(com, "\0") != 0 || strcmp(com, "\n") != 0)
+                else if (strcmp(com, "\0") != 0 || strcmp(com, "\n") == 0)
                 {
-                    fprintf(stderr, "Unrecognized command\n");
-                }
-
-                if (j > smallCL.num_token)
+                    fprintf(stdout, "Error: Unrecognized command\n");
+                    flag = 1;
                     break;
+                }
             }
             // showCurrentDir();
             // listDir();
-            memset(&smallCL, 0, 0);
             free_command_line(&smallCL);
+            
         }
 
         free_command_line(&largeCL);
-        memset(&largeCL, 0, 0);
+        //  printf("\n");
         printf(">>> ");
         fflush(stdout);
     }
@@ -283,7 +350,7 @@ int main(int argc, char *argv[])
         fileMode(argv[2], argc);
     }
     else
-        interactiveMode();
+        interactiveMode(argc);
     // listDir();
     //  for (int i =0; i < argc; i++)
     //  {

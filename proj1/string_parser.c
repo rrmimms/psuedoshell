@@ -22,7 +22,6 @@
 
 int count_token(char *buf, const char *delim)
 {
-	char *eOut;
 	// TODO：
 	/*
 	 *	#1.	Check for NULL string
@@ -47,11 +46,9 @@ int count_token(char *buf, const char *delim)
 	strcpy(copy_buf, buf);
 	if (copy_buf == NULL)
 	{
-		eOut = "strcpy failed.\n";
 		return -1;
 	}
 
-	copy_buf[strlen(buf)] = '\0';
 	token = strtok_r(copy_buf, delim, &ptr);
 
 	while (token != NULL)
