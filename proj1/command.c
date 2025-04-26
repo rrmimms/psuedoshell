@@ -171,42 +171,14 @@ void copyFile(char *sourcePath, char *destinationPath)
             break;
         }
 
-        // if (strcmp(destinationPath, ".") == 0 || strcmp(destinationPath, "..") == 0)
-        // {
-        //     isDir = 1;
-        //     if (strcmp(destinationPath, ".") == 0)
-        //     {
-        //         strcpy(targetDir, curDir);
-        //         if (targetDir == NULL)
-        //         {
-        //             perror("malloc failed");
-        //             break;
-        //         }
-        //     }
-        //     else if (strcmp(destinationPath, "..") == 0)
-        //     {
-        //         char *temp = strdup(curDir);
-        //         targetDir = dirname(temp);
-        //         if (targetDir == NULL)
-        //         {
-        //             perror("malloc failed");
-        //             break;
-        //         }
-        //     }
-        // }
-
-        if (stat(destinationPath, &dirSt) == 0 && S_ISDIR(dirSt.st_mode))
-        {
-            printf("final path: %s\n", finalPath);
-            if (finalPath[strlen(finalPath) - 1] != '/')
-            {
-                strcat(finalPath, "/");
-                printf("final path: %s\n", finalPath);
-            }
-            strcat(finalPath, baseSourcePath);
-            printf("final path: %s\n", finalPath);
-        }
-        printf("final path: %s\n", finalPath);
+                if (stat(destinationPath, &dirSt) == 0 && S_ISDIR(dirSt.st_mode))
+                {
+                    if (finalPath[strlen(finalPath) - 1] != '/')
+                    {
+                        strcat(finalPath, "/");
+                    }
+                    strcat(finalPath, baseSourcePath);
+                }
 
         outFile = open(finalPath, O_CREAT | O_WRONLY, S_IRWXU | S_IRWXG | S_IROTH);
 

@@ -41,19 +41,14 @@ void fileMode(char *sourcePath, int argc)
     while (getline(&buff, &size, inFile) != -1)
     {
         largeCL = str_filler(buff, ";");
-
         for (int i = 0; largeCL.command_list[i] != NULL; i++)
         {
-
             smallCL = str_filler(largeCL.command_list[i], " ");
-
             for (int j = 0; j < smallCL.num_token; j++)
             {
                 char *com = smallCL.command_list[j];
-
                 if (strcmp(com, "cp") == 0)
                 {
-
                     copyFile(smallCL.command_list[j + 1], smallCL.command_list[j + 2]);
                     j += 2;
                 }
@@ -120,7 +115,7 @@ void fileMode(char *sourcePath, int argc)
     fclose(inFile);
 }
 
-void interactiveMode(int argc)
+void interactiveMode(int argc)  
 {
     FILE *line = fdopen(STDIN_FILENO, "r");
 
@@ -285,7 +280,7 @@ void interactiveMode(int argc)
                         break;
                     }
                     deleteFile(smallCL.command_list[j + 1]);
-                    break;
+                    break;  
                 }
 
                 else if (strcmp(com, "cat") == 0)
@@ -321,9 +316,7 @@ void interactiveMode(int argc)
             // showCurrentDir();
             // listDir();
             free_command_line(&smallCL);
-            
         }
-
         free_command_line(&largeCL);
         //  printf("\n");
         printf(">>> ");
@@ -347,7 +340,12 @@ int main(int argc, char *argv[])
 
     if (argc != 1)
     {
+        if (strcmp(argv[1], "-f") == 0)        
         fileMode(argv[2], argc);
+        else{
+            fprintf(stderr, "File mode usage: ./pseudo-shell -f <filename>\n");
+            exit(EXIT_SUCCESS);
+        }
     }
     else
         interactiveMode(argc);
